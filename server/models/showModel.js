@@ -5,23 +5,33 @@ const showSchema = new mongoose.Schema(
     movieId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Movie",
-      required: true
+      required: true,
     },
     theaterId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Theater",
-      required: true
+      required: true,
     },
-    date: String,
-    time: String,
-    price: Number,
-    seats: {
+    date: {
+      type: String, // YYYY-MM-DD
+      required: true,
+    },
+    time: {
+      type: String, // HH:mm
+      required: true,
+    },
+    price: {
       type: Number,
-      default: 100
-    }
+      required: true,
+    },
+    seats: {
+      type: Number, // total seats for this show
+      required: true,
+    },
   },
   { timestamps: true }
 );
 
-const Show= mongoose.model("Show", showSchema);
+const Show = mongoose.model("Show", showSchema);
 export default Show;
+

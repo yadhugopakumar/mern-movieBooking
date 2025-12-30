@@ -1,59 +1,133 @@
 import Show from "../models/showModel.js";
 import Theater from "../models/theatreModel.js";
 import Movie from "../models/movieModel.js";
+import Seat from "../models/seatModel.js";
+import Bookings from "../models/bookingModel.js";
+
+
 
 // Get all movies (global list)
-export const getMovies = (req, res) => {
+// Get all movies (global list)
+export const getMovies = async (req, res) => {
+  try {
+    const movies = await Movie.find().sort({ createdAt: -1 });
+
     res.status(200).json({
       success: true,
       message: "Movies fetched successfully",
-      data: []
+      data: movies,
     });
-  };
-  
-  // Get shows for a selected movie
-  export const getShowsByMovie = (req, res) => {
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch movies",
+      error: error.message,
+    });
+  }
+};
+
+// View single movie details
+export const viewMovie = async (req, res) => {
+  try {
     const { movieId } = req.params;
-  
+
+    const movie = await Movie.findById(movieId);
+
+    if (!movie) {
+      return res.status(404).json({
+        success: false,
+        message: "Movie not found",
+      });
+    }
+
     res.status(200).json({
       success: true,
-      message: `Shows fetched for movie ${movieId}`,
-      data: []
+      message: "Movie fetched successfully",
+      data: movie,
     });
-  };
-  export const searchTheaters = async (req, res) => {
-    try {
-      const { movieId, city, date } = req.query;
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch movie",
+      error: error.message,
+    });
+  }
+};
+
   
-      if (!movieId) {
-        return res.status(400).json({ message: "movieId is required" });
-      }
-  
-      // find shows for the movie
-      let showQuery = { movieId };
-  
-      if (date) showQuery.date = date;
-  
-      const shows = await Show.find(showQuery)
-        .populate("theaterId")
-        .populate("movieId");
-  
-      // optional city filter
-      const filteredShows = city
-        ? shows.filter(
-            (s) =>
-              s.theaterId.location.toLowerCase() === city.toLowerCase()
-          )
-        : shows;
-  
-      res.status(200).json({
-        message: "Theaters fetched successfully",
-        data: filteredShows
+// Get shows for a selected movie
+export const getShowsByMovie = async (req, res) => {
+  try {
+    const { movieId } = req.params;
+
+    const shows = await Show.find({ movieId })
+      .populate("theaterId", "name location")
+      .populate("movieId", "title duration");
+
+    res.status(200).json({
+      success: true,
+      message: "Shows fetched successfully",
+      data: shows,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch shows",
+      error: error.message,
+    });
+  }
+};
+
+export const searchTheaters = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({
+        message: "query is required (movie or theater name)",
       });
-    } catch (error) {
-      res.status(500).json({ message: "Search failed", error: error.message });
     }
-  };
+
+    const safeQuery = query.trim();
+
+    // 🎬 partial + case-insensitive movie match
+    const movies = await Movie.find({
+      title: { $regex: safeQuery, $options: "i" }
+    }).select("_id");
+
+    // 🎭 partial + case-insensitive theater match
+    const theaters = await Theater.find({
+      name: { $regex: safeQuery, $options: "i" }
+    }).select("_id");
+
+    const movieIds = movies.map(m => m._id);
+    const theaterIds = theaters.map(t => t._id);
+
+    if (!movieIds.length && !theaterIds.length) {
+      return res.json({ data: [] });
+    }
+
+    const shows = await Show.find({
+      $or: [
+        { movieId: { $in: movieIds } },
+        { theaterId: { $in: theaterIds } }
+      ]
+    })
+      .populate("movieId", "title duration")
+      .populate("theaterId", "name location");
+
+    res.status(200).json({
+      message: "Search results fetched successfully",
+      data: shows,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Search failed",
+      error: error.message,
+    });
+  }
+};
+
 
   export const getShowSeats = async (req, res) => {
     const seats = await Seat.find({ show: req.params.showId });
@@ -69,28 +143,58 @@ export const getMovies = (req, res) => {
   
     res.json({ message: "Seats locked" });
   };
-  export const createBooking = async (req, res) => {
+
+
+
+export const createBooking = async (req, res) => {
+  try {
     const { showId, seats, totalAmount } = req.body;
-  
+
+    // 1️⃣ Get show to fetch theater
+    const show = await Show.findById(showId);
+    if (!show) {
+      return res.status(404).json({ message: "Show not found" });
+    }
+
+    // 2️⃣ Mark seats as booked
     await Seat.updateMany(
-      { show: showId, seatNumber: { $in: seats } },
-      { status: "booked" }
+      {
+        show: showId,
+        seatNumber: { $in: seats },
+        isBooked: false,
+      },
+      { isBooked: true }
     );
-  
-    const booking = await Booking.create({
+
+    // 3️⃣ Create booking
+    const booking = await Bookings.create({
       user: req.user.id,
+      theater: show.theaterId,
       show: showId,
       seats,
       totalAmount,
       paymentStatus: "paid",
     });
-  
-    res.status(201).json(booking);
-  };
-  export const getMyBookings = async (req, res) => {
-    const bookings = await Booking.find({ user: req.user.id })
-      .populate("show");
-  
-    res.json(bookings);
-  };
+
+    res.status(201).json({
+      message: "Booking successful",
+      data: booking,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Booking failed",
+      error: error.message,
+    });
+  }
+};
+
+
+export const getMyBookings = async (req, res) => {
+  const bookings = await Bookings.find({ user: req.user.id })
+    .populate("show", "date time price")
+    .populate("theater", "name location");
+
+  res.json(bookings);
+};
+
         

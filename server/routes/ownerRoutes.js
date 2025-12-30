@@ -7,6 +7,8 @@ import {
   updateShow,
   deleteShow,
   getShows,
+getMyTheaters,
+getTheaterById
 } from "../controllers/ownerControllers.js";
 
 import auth from "../middlewares/authMiddlewares.js";
@@ -15,9 +17,11 @@ import owner from "../middlewares/ownerMiddlewares.js";
 const ownerRouter = express.Router();
 
 /* ===== THEATERS ===== */
+ownerRouter.get("/theater", auth, owner, getMyTheaters);
 ownerRouter.post("/theater", auth, owner, addTheater);
 ownerRouter.put("/theater/:id", auth, owner, updateTheater);
 ownerRouter.delete("/theater/:id", auth, owner, deleteTheater);
+ownerRouter.get("/theater/:id", auth, owner, getTheaterById);
 
 /* ===== SHOWS ===== */
 ownerRouter.post("/show", auth, owner, addShow);

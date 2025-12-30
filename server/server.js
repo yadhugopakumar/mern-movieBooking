@@ -15,7 +15,7 @@ app.use(express.json());
 /* ===== ROUTES ===== */
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
-app.use("/api/seller", ownerRouter);
+app.use("/api/owner", ownerRouter);
 app.use("/api", userRouter);
 
 /* ===== DATABASE ===== */

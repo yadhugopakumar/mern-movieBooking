@@ -21,7 +21,7 @@ export const signup = async (req, res) => {
 
     // allow only valid roles
     const userRole =
-      role && ["user", "admin", "seller"].includes(role) ? role : "user";
+      role && ["user", "admin", "owner"].includes(role) ? role : "user";
 
     const user = await User.create({
       name,

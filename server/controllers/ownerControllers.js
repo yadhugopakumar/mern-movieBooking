@@ -1,70 +1,181 @@
 import Theater from "../models/theatreModel.js";
 import Show from "../models/showModel.js";
+import Seat from "../models/seatModel.js";
 
-export const addTheater = async (req, res) => {
-  const theater = await Theater.create({
-    ...req.body,
-    ownerId: req.user.id
-  });
-  res.status(201).json(theater);
+export const getMyTheaters = async (req, res) => {
+  const theaters = await Theater.find({ ownerId: req.user.id });
+  res.json(theaters);
 };
 
+
+export const addTheater = async (req, res) => {
+  try {
+    const theater = await Theater.create({
+      ...req.body,
+      ownerId: req.user.id, // enforced from auth
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Theater added successfully",
+      data: theater,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: "Failed to add theater",
+      error: error.message,
+    });
+  }
+};
+
+
 export const updateTheater = async (req, res) => {
-  const theater = await Theater.findOneAndUpdate(
-    { _id: req.params.id, owner: req.user.id },
-    req.body,
-    { new: true }
-  );
+  try {
+    const theater = await Theater.findOneAndUpdate(
+      { _id: req.params.id, ownerId: req.user.id },
+      req.body,
+      { new: true }
+    );
+
+    if (!theater) {
+      return res.status(404).json({ message: "Theater not found" });
+    }
+
+    res.json(theater);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const deleteTheater = async (req, res) => {
+  try {
+    const theater = await Theater.findOneAndDelete({
+      _id: req.params.id,
+      ownerId: req.user.id,
+    });
+
+    if (!theater) {
+      return res.status(404).json({ message: "Theater not found" });
+    }
+
+    res.json({ message: "Theater deleted successfully" });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+export const getTheaterById = async (req, res) => {
+  const theater = await Theater.findOne({
+    _id: req.params.id,
+    ownerId: req.user.id,
+  });
+
+  if (!theater) {
+    return res.status(404).json({ message: "Theater not found" });
+  }
 
   res.json(theater);
 };
-export const deleteTheater = async (req, res) => {
-  await Theater.findOneAndDelete({
-    _id: req.params.id,
-    owner: req.user.id
-  });
 
-  res.json({ message: "Theater deleted" });
-};
 
 export const addShow = async (req, res) => {
-  const theater = await Theater.findById(theaterId);
+  try {
+    const { movieId, theaterId, date, time, price } = req.body;
 
-  const seats = [];
+    // 1️⃣ Verify theater belongs to owner
+    const theater = await Theater.findOne({
+      _id: theaterId,
+      ownerId: req.user.id,
+    });
 
-  theater.seatLayout.forEach(r => {
-    for (let i = 1; i <= r.seatCount; i++) {
-      seats.push({
-        theater: theater._id,
-        show: show._id,
-        seatNumber: `${r.row}${i}`, // A1, A2
-        price: r.price,
+    if (!theater) {
+      return res.status(403).json({
+        message: "You do not own this theater",
       });
     }
-  });
 
-  await Seat.insertMany(seats);
+    // 2️⃣ Create show
+    const show = await Show.create({
+      movieId,
+      theaterId,
+      date,
+      time,
+      price,
+      seats: theater.seatLayout.reduce(
+        (sum, row) => sum + row.seatCount,
+        0
+      ),
+    });
 
+    // 3️⃣ Create seats for this show
+    const seatDocs = [];
+
+    theater.seatLayout.forEach((row) => {
+      for (let i = 1; i <= row.seatCount; i++) {
+        seatDocs.push({
+          theater: theater._id,
+          show: show._id,
+          seatNumber: `${row.row}${i}`, // A1, A2, B1...
+          price: row.price,
+          isBooked: false,
+        });
+      }
+    });
+
+    await Seat.insertMany(seatDocs);
+
+    res.status(201).json({
+      message: "Show created and seats generated successfully",
+      show,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to create show",
+      error: error.message,
+    });
+  }
 };
+
+
 export const updateShow = async (req, res) => {
-  const show = await Show.findOneAndUpdate(
-    { _id: req.params.id, owner: req.user.id },
-    req.body,
-    { new: true }
-  );
+  try {
+    const show = await Show.findOneAndUpdate(
+      { _id: req.params.id },
+      req.body,
+      { new: true }
+    );
 
-  res.json(show);
+    if (!show) {
+      return res.status(404).json({ message: "Show not found" });
+    }
+
+    res.json(show);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 };
-export const deleteShow = async (req, res) => {
-  await Show.findOneAndDelete({
-    _id: req.params.id,
-    owner: req.user.id
-  });
 
-  res.json({ message: "Show deleted" });
+export const deleteShow = async (req, res) => {
+  try {
+    const show = await Show.findByIdAndDelete(req.params.id);
+
+    if (!show) {
+      return res.status(404).json({ message: "Show not found" });
+    }
+
+    await Seat.deleteMany({ show: show._id });
+
+    res.json({ message: "Show and seats deleted" });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 };
 
 export const getShows = async (req, res) => {
-  const shows = await Show.find();
+  const shows = await Show.find()
+    .populate("theaterId", "name location")
+    .populate("movieId", "title");
+
   res.json(shows);
 };
+
