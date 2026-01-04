@@ -4,3 +4,8 @@
 p{
     color:black;
 }
+.input {
+    @apply w-full bg-white/5 border border-white/20 rounded-lg px-4 py-2 text-white
+    focus:outline-none focus:ring-2 focus:ring-yellow-400;
+  }
+  

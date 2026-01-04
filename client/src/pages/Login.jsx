@@ -14,21 +14,35 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
+  
     try {
       const res = await axios.post("http://localhost:3000/api/auth/login", {
         email,
         password,
       });
-
+  
+      // 🔑 Store token
       localStorage.setItem("token", res.data.token);
+  
+      // 🔑 Store role from BACKEND (not radio button)
+      localStorage.setItem("role", res.data.user.role);
+  
+      // 🔄 Sync navbar / auth state
       window.dispatchEvent(new Event("storage"));
-
-      navigate(from, { replace: true });
+  
+      // 🎯 Role-based redirect
+      if (res.data.user.role === "owner") {
+        navigate("/owner/dashboard", { replace: true });
+      } else if (res.data.user.role === "admin") {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err) {
-      alert(err.response?.data?.message || "Login failed");
+      alert(err.response?.data?.message || err+"Login failed");
     }
   };
+  
 
   return (
     <AuthLayout title="Welcome Back">
@@ -74,7 +88,7 @@ const Login = () => {
           Sign In
         </button>
 
-        <p className="text-center text-sm text-white">
+        <p className="text-center text-sm text-white " style={{"color":"white"}}>
           Don’t have an account?{" "}
           <Link to="/register" className="text-yellow-400">Register</Link>
         </p>

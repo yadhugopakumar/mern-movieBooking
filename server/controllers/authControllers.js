@@ -53,33 +53,37 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Email and password required" });
     }
 
-    // find user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // create token
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
+    // ✅ THIS IS THE IMPORTANT PART
     res.status(200).json({
       message: "Login successful",
-      token
+      token,
+      user: {
+        role: user.role,
+        name: user.name,
+        email: user.email,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: "Login failed", error: error.message });
   }
 };
+
 
 /* ================= LOGOUT ================= */
 export const logout = async (req, res) => {
@@ -87,9 +91,53 @@ export const logout = async (req, res) => {
 };
 
 /* ================= PROFILE ================= */
+// GET /api/auth/profile
 export const profile = async (req, res) => {
-  const user = await User.findById(req.user.id).select("-password");
-  res.status(200).json({ user });
+  try {
+    const user = await User.findById(req.user.id)
+      .select("name email"); //
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ user });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch profile" });
+  }
+};
+// PUT /api/auth/profile
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ message: "Name and email required" });
+    }
+
+    // Prevent email collision
+    const existing = await User.findOne({
+      email,
+      _id: { $ne: req.user.id },
+    });
+
+    if (existing) {
+      return res.status(409).json({ message: "Email already in use" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { name, email },
+      { new: true }
+    ).select("name email");
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Profile update failed" });
+  }
 };
 
 /* ================= CHECK USER ================= */
