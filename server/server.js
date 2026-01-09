@@ -11,12 +11,20 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:5173" })); // React/Vite URL
+
+app.use(cors({
+  origin: "http://localhost:5173", // or 3001 (your frontend)
+  credentials: true
+}));
+
+app.use(express.json());
+
 /* ===== ROUTES ===== */
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/owner", ownerRouter);
 app.use("/api", userRouter);
+app.use("/uploads", express.static("uploads"));
 
 /* ===== DATABASE ===== */
 mongoose

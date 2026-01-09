@@ -163,6 +163,15 @@ import MyShows from "./pages/owner/MyShows";
 // ADMIN PAGE
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import HomeGuard from "../routes/HomeGuard.jsx";
+import ManageUsers from "./pages/admin/ManageAdminBookings.jsx";
+import ManageOwners from "./pages/admin/ManageOwners.jsx";
+import ManageMovies from "./pages/admin/ManageMovies.jsx";
+import AddMovie from "./pages/admin/AddMoviePage.jsx";
+import ViewMovie from "./pages/admin/ViewMovie.jsx";
+import EditMovie from "./pages/admin/EditMovie.jsx";
+import ManageAdminBookings from "./pages/admin/ManageAdminBookings.jsx";
+import AdminReviews from "./pages/admin/AdminReviews.jsx";
+import OwnerReviews from "./pages/owner/OwnerReviews.jsx";
 
 function App() {
   const [query, setQuery] = useState("");
@@ -347,12 +356,59 @@ function App() {
             </AdminRoutes>
           } />
 
+          {/* <Route path="/admin" element={<AdminRoutes> <AdminDashboard /></AdminRoutes>} /> */}
+          <Route path="/admin/bookings" element={<AdminRoutes> <ManageAdminBookings /> </AdminRoutes>} />
+          <Route path="/admin/owners" element={<AdminRoutes> <ManageOwners /> </AdminRoutes>} />
+          <Route
+            path="/admin/movies"
+            element={
+              <AdminRoutes>
+                <ManageMovies />
+              </AdminRoutes>
+            }
+          />
+
+          <Route
+            path="/admin/movies/view/:id"
+            element={
+              <AdminRoutes>
+                <ViewMovie />
+              </AdminRoutes>
+            }
+          />
+
+          <Route
+            path="/admin/movies/add"
+            element={
+              <AdminRoutes>
+                <AddMovie />
+              </AdminRoutes>
+            }
+          />
+
+          <Route
+            path="/admin/movies/edit/:id"
+            element={
+              <AdminRoutes>
+                <EditMovie />
+              </AdminRoutes>} />
+          <Route
+            path="/admin/reviews"
+            element={<AdminRoutes><AdminReviews /></AdminRoutes>}
+          />
+<Route
+  path="/owner/reviews"
+  element={<OwnerRoutes><OwnerReviews /></OwnerRoutes>}
+/>
+
           {/* PUBLIC */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/search" element={<Search />} />
           <Route path="/movie/:id" element={<MovieDetails />} />
           <Route path="/booking-success" element={<BookingSuccess />} />
+
+
         </Routes>
       </main>
     </>

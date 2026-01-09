@@ -1,13 +1,13 @@
-import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const OwnerDashboard = () => {
     const [showTheaterModal, setShowTheaterModal] = useState(false);
     const [showShowModal, setShowShowModal] = useState(false);
     const [theaters, setTheaters] = useState([]);
     const [movies, setMovies] = useState([]);
-
+    const navigate = useNavigate();
     useEffect(() => {
         const fetchMovies = async () => {
             const res = await axios.get(
@@ -69,7 +69,7 @@ const OwnerDashboard = () => {
         updatedRows[index][field] = value;
         setTheaterForm({ ...theaterForm, seatLayout: updatedRows });
     };
-    
+
 
     const token = localStorage.getItem("token");
 
@@ -170,7 +170,17 @@ const OwnerDashboard = () => {
                             Schedule movies and manage show timings
                         </p>
                     </div>
-
+                    <div
+                        onClick={() => navigate("/owner/reviews")}
+                        className="bg-white p-4 rounded shadow cursor-pointer hover:shadow-md"
+                    >
+                        <h3 className="font-medium text-green-600">
+                            Reviews
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                            View all reviews and feedbacks
+                        </p>
+                    </div>
                 </div>
             </div>
             {showShowModal && (

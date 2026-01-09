@@ -3,6 +3,8 @@ import Theater from "../models/theatreModel.js";
 import Movie from "../models/movieModel.js";
 import Seat from "../models/seatModel.js";
 import Bookings from "../models/bookingModel.js";
+import Review from "../models/reviewModel.js";
+
 
 
 
@@ -223,3 +225,55 @@ export const getMyBookings = async (req, res) => {
 };
 
         
+
+// Get reviews for a movie
+export const getMovieReviews = async (req, res) => {
+  const reviews = await Review.find({ movie: req.params.movieId })
+    .sort({ createdAt: -1 });
+
+  res.json({ data: reviews });
+};
+
+// Add review
+export const addReview = async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+
+    if (!rating || !comment) {
+      return res.status(400).json({
+        message: "Rating and comment required",
+      });
+    }
+
+    const review = await Review.create({
+      userId: req.user.id,       // stable ID
+      userName: req.user.name,   // display name
+      movie: req.params.movieId,
+      rating,
+      comment,
+    });
+
+    res.status(201).json(review);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to add review",
+      error: error.message,
+    });
+  }
+};
+
+
+export const deleteReview = async (req, res) => {
+  const review = await Review.findById(req.params.reviewId);
+
+  if (!review) {
+    return res.status(404).json({ message: "Review not found" });
+  }
+
+  if (review.userId.toString() !== req.user.id) {
+    return res.status(403).json({ message: "Not allowed" });
+  }
+
+  await review.deleteOne();
+  res.json({ message: "Review deleted" });
+};

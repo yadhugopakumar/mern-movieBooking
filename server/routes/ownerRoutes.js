@@ -10,7 +10,8 @@ import {
   getMyTheaters,
   getTheaterById,
   getOwnerDashboardStats,
-  getShowBookings
+  getShowBookings,
+  getOwnerReviews
 } from "../controllers/ownerControllers.js";
 
 import auth from "../middlewares/authMiddlewares.js";
@@ -37,6 +38,13 @@ ownerRouter.get(
   owner,
   getShowBookings
 );
+ownerRouter.get(
+  "/reviews",
+  auth,
+  owner,
+  getOwnerReviews
+);
+
 
 
 ownerRouter.get("/dashboard-stats", auth, getOwnerDashboardStats);

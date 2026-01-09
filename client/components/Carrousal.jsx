@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+const IMAGE_BASE = "http://localhost:3000";
+
 export const Carrousal = () => {
   const [slides, setSlides] = useState([]);
   const [current, setCurrent] = useState(0);
@@ -11,8 +13,8 @@ export const Carrousal = () => {
       .get("http://localhost:3000/api/movies")
       .then(res => {
         const latest = res.data.data
-          .slice(-3)              // last 3 movies
-          .reverse();             // newest first
+          .slice(-3)
+          .reverse();
         setSlides(latest);
       })
       .catch(err => console.error(err));
@@ -59,24 +61,24 @@ export const Carrousal = () => {
               style={{ width: `${100 / slides.length}%` }}
             >
               <img
-                src={movie.poster}
+                src={
+                  movie.poster
+                    ? `${IMAGE_BASE}${movie.poster}`
+                    : "https://via.placeholder.com/1200x500?text=No+Image"
+                }
                 alt={movie.title}
                 className="w-full h-full object-cover"
               />
 
               <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent flex items-center p-12">
                 <div className="max-w-xl space-y-5">
-                  <p className="text-yellow-400 font-bold uppercase tracking-widest text-sm">
+                  <p className="text-yellow-400 font-bold uppercase tracking-widest text-sm" style={{ "color": "gray" }}>
                     Featured
                   </p>
 
                   <h2 className="text-white text-5xl md:text-7xl font-black uppercase leading-none">
                     {movie.title}
                   </h2>
-
-                  <button className="bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-yellow-400 transition">
-                    Book Ticket
-                  </button>
                 </div>
               </div>
             </div>

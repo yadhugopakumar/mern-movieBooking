@@ -14,22 +14,20 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-  
+
     try {
       const res = await axios.post("http://localhost:3000/api/auth/login", {
         email,
         password,
       });
-  
-      // 🔑 Store token
       localStorage.setItem("token", res.data.token);
-  
-      // 🔑 Store role from BACKEND (not radio button)
+      localStorage.setItem("userId", res.data.user.id);
+      localStorage.setItem("userName", res.data.user.name);
       localStorage.setItem("role", res.data.user.role);
-  
+
       // 🔄 Sync navbar / auth state
       window.dispatchEvent(new Event("storage"));
-  
+
       // 🎯 Role-based redirect
       if (res.data.user.role === "owner") {
         navigate("/owner/dashboard", { replace: true });
@@ -39,10 +37,10 @@ const Login = () => {
         navigate(from, { replace: true });
       }
     } catch (err) {
-      alert(err.response?.data?.message || err+"Login failed");
+      alert(err.response?.data?.message || err + "Login failed");
     }
   };
-  
+
 
   return (
     <AuthLayout title="Welcome Back">
@@ -88,7 +86,7 @@ const Login = () => {
           Sign In
         </button>
 
-        <p className="text-center text-sm text-white " style={{"color":"white"}}>
+        <p className="text-center text-sm text-white " style={{ "color": "white" }}>
           Don’t have an account?{" "}
           <Link to="/register" className="text-yellow-400">Register</Link>
         </p>

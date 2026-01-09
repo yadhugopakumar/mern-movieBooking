@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import {User} from "../models/userModel.js";
+import { User } from "../models/userModel.js";
 /* ================= SIGNUP ================= */
 export const signup = async (req, res) => {
   try {
@@ -64,21 +64,27 @@ export const login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      {
+        id: user._id.toString(),
+        name: user.name,      // ✅ ADD THIS
+        role: user.role,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
+    
 
     // ✅ THIS IS THE IMPORTANT PART
     res.status(200).json({
       message: "Login successful",
       token,
       user: {
-        role: user.role,
+        id: user._id.toString(),
         name: user.name,
-        email: user.email,
+        role: user.role,
       },
     });
+    
   } catch (error) {
     res.status(500).json({ message: "Login failed", error: error.message });
   }

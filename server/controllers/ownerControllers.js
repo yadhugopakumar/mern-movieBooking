@@ -2,95 +2,12 @@ import Theater from "../models/theatreModel.js";
 import Show from "../models/showModel.js";
 import Seat from "../models/seatModel.js";
 import Booking from "../models/bookingModel.js";
+import Review from "../models/reviewModel.js";
 
 export const getMyTheaters = async (req, res) => {
   const theaters = await Theater.find({ ownerId: req.user.id });
   res.json(theaters);
 };
-// controllers/ownerDashboardController.js
-// controllers/ownerDashboardController.js
-
-// export const getOwnerDashboardStats = async (req, res) => {
-//   try {
-//     const ownerId = req.user.id;
-
-//     // 1️⃣ Owner theaters
-//     const theaters = await Theater.find({ ownerId }).select("_id");
-//     const theaterIds = theaters.map(t => t._id);
-
-//     // 2️⃣ Total theaters
-//     const totalTheaters = theaterIds.length;
-
-//     // 3️⃣ Date range (today)
-//     const start = new Date();
-//     start.setHours(0, 0, 0, 0);
-
-//     const end = new Date();
-//     end.setHours(23, 59, 59, 999);
-
-//     // 4️⃣ Active shows today
-//     const showsToday = await Show.countDocuments({
-//       theaterId: { $in: theaterIds },
-//       date: { $gte: start, $lte: end },
-//     });
-
-//     // ================= TODAY =================
-//     const todaysBookings = await Booking.find({
-//       theater: { $in: theaterIds },
-//       paymentStatus: "paid",
-//       createdAt: { $gte: start, $lte: end },
-//     });
-
-//     const todaysSeatsBooked = todaysBookings.reduce(
-//       (sum, b) => sum + b.seats.length,
-//       0
-//     );
-
-//     const todaysRevenue = todaysBookings.reduce(
-//       (sum, b) => sum + b.totalAmount,
-//       0
-//     );
-
-//     // ================= ALL TIME =================
-//     const allBookings = await Booking.find({
-//       theater: { $in: theaterIds },
-//       paymentStatus: "paid",
-//     });
-
-//     const totalSeatsBooked = allBookings.reduce(
-//       (sum, b) => sum + b.seats.length,
-//       0
-//     );
-
-//     const totalRevenue = allBookings.reduce(
-//       (sum, b) => sum + b.totalAmount,
-//       0
-//     );
-
-//     res.status(200).json({
-//       totalTheaters,
-//       showsToday,
-
-//       todaysStats: {
-//         bookings: todaysBookings.length,
-//         seatsBooked: todaysSeatsBooked,
-//         revenue: todaysRevenue,
-//       },
-
-//       allTimeStats: {
-//         bookings: allBookings.length,
-//         seatsBooked: totalSeatsBooked,
-//         revenue: totalRevenue,
-//       },
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       message: "Failed to load owner dashboard stats",
-//       error: error.message,
-//     });
-//   }
-// };
-
 
 export const getOwnerDashboardStats = async (req, res) => {
   const ownerId = req.user.id;
@@ -371,4 +288,31 @@ export const getShows = async (req, res) => {
 
   res.json(shows);
 };
+export const getOwnerReviews = async (req, res) => {
+  try {
+    const theaters = await Theater.find({ ownerId: req.user.id }).select("_id");
 
+    const shows = await Show.find({
+      theaterId: { $in: theaters.map(t => t._id) }
+    }).populate("movieId theaterId");
+
+    const movieMap = {};
+    shows.forEach(s => {
+      movieMap[s.movieId._id] = s.theaterId.name;
+    });
+
+    const reviews = await Review.find({
+      movie: { $in: Object.keys(movieMap) }
+    })
+      .populate("movie", "title")
+      .lean();
+
+    reviews.forEach(r => {
+      r.theaterName = movieMap[r.movie._id] || "N/A";
+    });
+
+    res.json({ data: reviews });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

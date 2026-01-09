@@ -9,7 +9,8 @@ const movieSchema = new mongoose.Schema(
     language: String,
     description:String,
     duration: Number,
-    genre: String
+    genre: String,
+    poster: String   
   },
   { timestamps: true }
 );
