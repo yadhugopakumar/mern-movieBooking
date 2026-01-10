@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+// 1. Import your custom api instance
+import api from "../api/axios"; 
 import { Clock, Star, Play } from "lucide-react";
 
-const IMAGE_BASE = "http://localhost:3000";
+// 2. Dynamically set the IMAGE_BASE for production
+const IMAGE_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 const MovieGrid = () => {
   const navigate = useNavigate();
@@ -11,14 +13,16 @@ const MovieGrid = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/api/movies")
+    // 3. Use the 'api' instance (automatically adds the base URL)
+    api.get("/api/movies")
       .then(res => {
-        setMovies(res.data.data);
-        setLoading(false);
+        // Ensure you're mapping to the correct data structure
+        setMovies(res.data.data || res.data);
       })
       .catch(err => {
-        console.error(err);
+        console.error("Error fetching movies:", err);
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, []);
@@ -26,7 +30,6 @@ const MovieGrid = () => {
   if (loading) return <SkeletonGrid />;
 
   return (
-    /* Changed grid-cols-2 to grid-cols-1 for mobile */
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-10">
       {movies.map(movie => (
         <div
@@ -37,6 +40,7 @@ const MovieGrid = () => {
           {/* Poster Container */}
           <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-200 dark:bg-zinc-800">
             <img
+              // 4. Poster source now uses dynamic IMAGE_BASE
               src={movie.poster ? `${IMAGE_BASE}${movie.poster}` : "https://via.placeholder.com/300x450?text=No+Poster"}
               alt={movie.title}
               className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
@@ -88,6 +92,7 @@ const MovieGrid = () => {
   );
 };
 
+// ... SkeletonGrid code remains the same
 const SkeletonGrid = () => (
   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
     {[...Array(5)].map((_, i) => (
