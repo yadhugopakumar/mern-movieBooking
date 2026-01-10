@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+
+import api from "../api/axios"; // Your custom instance
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { Plus, Film, Star, TrendingUp, Calendar, MapPin, X } from "lucide-react";
 
@@ -24,22 +26,33 @@ const OwnerDashboard = () => {
         seatLayout: [{ row: "A", seatCount: "", price: "" }],
     });
 
+
+
     useEffect(() => {
         const fetchData = async () => {
             try {
+                // 1. Parallel requests using the centralized 'api' instance
+                // 2. Interceptor automatically handles the Authorization token
                 const [moviesRes, theatersRes, statsRes] = await Promise.all([
-                    axios.get("http://localhost:3000/api/movies"),
-                    axios.get("http://localhost:3000/api/owner/theater", { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get("http://localhost:3000/api/owner/dashboard-stats", { headers: { Authorization: `Bearer ${token}` } })
+                    api.get("/api/movies"),
+                    api.get("/api/owner/theater"),
+                    api.get("/api/owner/dashboard-stats")
                 ]);
-                setMovies(moviesRes.data.data);
-                setTheaters(theatersRes.data);
-                setStats(statsRes.data);
+
+                // 3. Map data based on your specific backend response structure
+                setMovies(moviesRes.data.data || moviesRes.data);
+                setTheaters(theatersRes.data.data || theatersRes.data);
+                setStats(statsRes.data.data || statsRes.data);
+
             } catch (err) {
-                console.error("Fetch error", err);
+                console.error("Dashboard fetch error:", err);
+                toast.error("Failed to load dashboard data");
             }
         };
-        fetchData();
+
+        if (token) {
+            fetchData();
+        }
     }, [token]);
 
     const addRow = () => {
@@ -58,7 +71,7 @@ const OwnerDashboard = () => {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 p-6 transition-colors duration-200">
             <div className="max-w-7xl mx-auto space-y-10">
-                
+
                 {/* Header */}
                 <header>
                     <h1 className="text-3xl font-bold text-red-600">Owner Dashboard</h1>
@@ -69,23 +82,23 @@ const OwnerDashboard = () => {
                 <section>
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-red-800 dark:text-red-500 mb-4">Quick Management</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <ActionCard 
-                            title="Create Shows" 
-                            desc="Schedule movies and timings" 
-                            icon={<Film className="text-red-500" />} 
-                            onClick={() => setShowShowModal(true)} 
+                        <ActionCard
+                            title="Create Shows"
+                            desc="Schedule movies and timings"
+                            icon={<Film className="text-red-500" />}
+                            onClick={() => setShowShowModal(true)}
                         />
-                        <ActionCard 
-                            title="View Reviews" 
-                            desc="Check customer feedback" 
-                            icon={<Star className="text-yellow-500" />} 
-                            onClick={() => navigate("/owner/reviews")} 
+                        <ActionCard
+                            title="View Reviews"
+                            desc="Check customer feedback"
+                            icon={<Star className="text-yellow-500" />}
+                            onClick={() => navigate("/owner/reviews")}
                         />
-                        <ActionCard 
-                            title="Add Theatre" 
-                            desc="Register a new location" 
-                            icon={<Plus className="text-blue-500" />} 
-                            onClick={() => setShowTheaterModal(true)}                        
+                        <ActionCard
+                            title="Add Theatre"
+                            desc="Register a new location"
+                            icon={<Plus className="text-blue-500" />}
+                            onClick={() => setShowTheaterModal(true)}
                         />
                     </div>
                 </section>
@@ -100,15 +113,15 @@ const OwnerDashboard = () => {
 
                 {/* DETAILED STATS GRID */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    <StatsSection 
-                        title="Daily Performance" 
+                    <StatsSection
+                        title="Daily Performance"
                         stats={[
                             { label: "Bookings Today", value: stats.todaysStats.bookings, action: () => navigate("/owner/today-bookings") },
                             { label: "Seats Filled", value: stats.todaysStats.seatsBooked }
                         ]}
                     />
-                    <StatsSection 
-                        title="Lifetime Performance" 
+                    <StatsSection
+                        title="Lifetime Performance"
                         stats={[
                             { label: "Total Bookings", value: stats.allTimeStats.bookings, action: () => navigate("/owner/all-bookings") },
                         ]}
@@ -119,11 +132,27 @@ const OwnerDashboard = () => {
             {/* THEATER MODAL */}
             {showTheaterModal && (
                 <Modal title="Add Theater" onClose={() => setShowTheaterModal(false)}>
-                    <form className="space-y-4" onSubmit={async (e) => {
-                        e.preventDefault();
-                        await axios.post("http://localhost:3000/api/owner/theater", theaterForm, { headers: { Authorization: `Bearer ${token}` } });
-                        setShowTheaterModal(false);
-                    }}>
+                    <form
+                        className="space-y-4"
+                        onSubmit={async (e) => {
+                            e.preventDefault();
+                            try {
+                                // 1. Using the 'api' instance instead of axios + hardcoded URL
+                                // 2. No need for manual headers; the interceptor handles it
+                                await api.post("/api/owner/theater", theaterForm);
+
+                                toast.success("Theater details updated!");
+                                setShowTheaterModal(false);
+
+                                // Optional: Refresh data after update
+                                // if (fetchData) fetchData(); 
+
+                            } catch (err) {
+                                console.error("Error updating theater:", err);
+                                toast.error(err.response?.data?.message || "Failed to update theater");
+                            }
+                        }}
+                    >
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Theater Details</label>
                             <input
@@ -220,12 +249,31 @@ const Modal = ({ title, children, onClose }) => (
 const CreateShowForm = ({ theaters, movies, token, onSuccess }) => {
     const [form, setForm] = useState({ theaterId: "", movieId: "", date: "", time: "", basePrice: "" });
 
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        await axios.post("http://localhost:3000/api/owner/show", { ...form, basePrice: Number(form.basePrice) }, { headers: { Authorization: `Bearer ${token}` } });
-        onSuccess();
-    };
 
+        try {
+            // 1. We use the 'api' instance which already knows your Railway URL
+            // 2. The Interceptor automatically attaches the 'Bearer token'
+            await api.post("/api/owner/show", {
+                ...form,
+                basePrice: Number(form.basePrice)
+            });
+
+            // 3. Success feedback
+            toast.success("Show added successfully!");
+
+            // 4. Trigger the parent component to refresh the list or close the modal
+            onSuccess();
+        } catch (err) {
+            console.error("Error adding show:", err);
+
+            // 5. Handle specific backend errors (e.g., "Screen already occupied")
+            const errorMsg = err.response?.data?.message || "Failed to create show";
+            toast.error(errorMsg);
+        }
+    };
     const inputClass = "w-full bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-300 dark:border-zinc-700 px-3 py-2 rounded-md focus:ring-2 ring-red-500 outline-none transition";
 
     return (
