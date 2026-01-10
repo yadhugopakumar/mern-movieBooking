@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+// 1. Import your custom api instance
+import api from "../api/axios"; 
 import { Film, Upload, ArrowLeft, Save, Loader2, Clock, Globe, Tag } from "lucide-react";
+import toast from "react-hot-toast";
 
-const IMAGE_BASE = "http://localhost:3000";
+// 2. Use environment variable for the image base URL
+const IMAGE_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 const EditMovie = () => {
   const { id } = useParams();
@@ -23,12 +26,17 @@ const EditMovie = () => {
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
-    axios.get(`http://localhost:3000/api/movies/${id}`)
+    // 3. Updated to use the api instance with a relative path
+    api.get(`/api/movies/${id}`)
       .then(res => {
-        setMovie(res.data.data);
+        setMovie(res.data.data || res.data);
         setLoading(false);
       })
-      .catch(err => console.error("Fetch failed", err));
+      .catch(err => {
+        console.error("Fetch failed", err);
+        toast.error("Failed to load movie data");
+        setLoading(false);
+      });
   }, [id]);
 
   const handleChange = (e) => {
@@ -49,14 +57,15 @@ const EditMovie = () => {
     if (newPoster) formData.append("poster", newPoster);
 
     try {
-      await axios.put(
-        `http://localhost:3000/api/admin/movie/${id}`,
-        formData,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
+      // 4. Manual Authorization header removed (handled by api.js interceptor)
+      // Headers for multipart/form-data are handled automatically by Axios when sending FormData
+      await api.put(`/api/admin/movie/${id}`, formData);
+      
+      toast.success("Movie updated successfully!");
       navigate("/admin/movies");
     } catch (err) {
-      alert("Failed to update movie");
+      const errorMsg = err.response?.data?.message || "Failed to update movie";
+      toast.error(errorMsg);
     } finally {
       setUpdating(false);
     }
@@ -74,7 +83,6 @@ const EditMovie = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 p-6 transition-colors">
       <div className="max-w-5xl mx-auto space-y-6">
         
-        {/* Navigation & Title */}
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate(-1)} 
@@ -87,7 +95,6 @@ const EditMovie = () => {
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Left Column: Poster Upload */}
           <div className="lg:col-span-1 space-y-4">
             <div className="bg-white dark:bg-zinc-900 p-4 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
               <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3 block">Movie Poster</label>
@@ -118,7 +125,6 @@ const EditMovie = () => {
             </div>
           </div>
 
-          {/* Right Column: Metadata Form */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
               
@@ -190,7 +196,6 @@ const EditMovie = () => {
   );
 };
 
-// Custom Themed Input Component
 const FormInput = ({ label, icon, ...props }) => (
   <div className="space-y-2">
     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest ml-1">{label}</label>
