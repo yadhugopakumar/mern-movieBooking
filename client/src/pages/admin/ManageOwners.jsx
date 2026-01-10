@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axios"; // Your custom instance
+import toast from "react-hot-toast";
 import { UserX, Search, Mail, Shield, Loader2, Trash2, UserCheck } from "lucide-react";
 
 const ManageOwners = () => {
@@ -12,32 +13,35 @@ const ManageOwners = () => {
     }, []);
 
     const fetchOwners = async () => {
+        setLoading(true);
         try {
-            const res = await axios.get("http://localhost:3000/api/admin/owners", {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`
-                }
-            });
-            setOwners(res.data);
+            // 1. Switched to 'api' instance
+            // 2. Interceptor handles the Admin Bearer token automatically
+            const res = await api.get("/api/admin/owners");
+            
+            // Map data (handles res.data.data or res.data depending on your backend)
+            setOwners(res.data.data || res.data);
         } catch (err) {
             console.error("Failed to fetch owners", err);
+            toast.error("Could not load theater owners");
         } finally {
             setLoading(false);
         }
     };
-
+    
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to remove this owner? All associated theaters may be affected.")) return;
-
+    
         try {
-            await axios.delete(`http://localhost:3000/api/admin/owner/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`
-                }
-            });
-            setOwners(owners.filter(o => o._id !== id));
+            // 3. Simplified URL for production
+            await api.delete(`/api/admin/owner/${id}`);
+            
+            // Optimistic UI update
+            setOwners(prev => prev.filter(o => o._id !== id));
+            toast.success("Owner removed successfully");
         } catch (err) {
-            alert("Failed to delete owner");
+            console.error("Delete error:", err);
+            toast.error("Failed to delete owner. Check server logs.");
         }
     };
 
