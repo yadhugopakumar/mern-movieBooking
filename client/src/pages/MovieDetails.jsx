@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axios"; // Use your custom instance
 import { Star, Clock, Globe, Film, MapPin, Trash2, MessageSquare, X, Loader2 } from "lucide-react";
 
 const MovieDetails = () => {
@@ -18,24 +18,35 @@ const MovieDetails = () => {
   const token = localStorage.getItem("token");
   const userId = localStorage.getItem("userId");
 
+
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
+        
+        // Using the api instance ensures the base URL is handled by environment variables
         const [movieRes, reviewRes, showRes] = await Promise.all([
-          axios.get(`http://localhost:3000/api/movies/${id}`),
-          axios.get(`http://localhost:3000/api/movies/${id}/reviews`),
-          axios.get(`http://localhost:3000/api/shows/${id}`)
+          api.get(`/api/movies/${id}`),
+          api.get(`/api/movies/${id}/reviews`),
+          api.get(`/api/shows/${id}`)
         ]);
-        setMovie(movieRes.data.data);
-        setReviews(reviewRes.data.data);
-        setShows(showRes.data.data);
+  
+        // Depending on your backend, data might be in res.data or res.data.data
+        setMovie(movieRes.data.data || movieRes.data);
+        setReviews(reviewRes.data.data || reviewRes.data);
+        setShows(showRes.data.data || showRes.data);
+        
       } catch (err) {
-        console.error(err);
+        console.error("Error loading movie details:", err);
+        // Optional: set an error state to show the user a "Try Again" button
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+  
+    if (id) {
+      fetchData();
+    }
   }, [id]);
 
   if (loading) return (
@@ -202,31 +213,47 @@ const MovieDetails = () => {
     </div>
   );
 
+
   // Helper functions
   async function handleDeleteReview(reviewId) {
     if (!window.confirm("Delete this review?")) return;
+    
     try {
-      await axios.delete(`http://localhost:3000/api/reviews/${reviewId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // 1. Simplified URL & Auto-injected headers
+      await api.delete(`/api/reviews/${reviewId}`);
+      
+      // 2. Optimistic UI update: Remove from state immediately
       setReviews(prev => prev.filter(rv => rv._id !== reviewId));
-    } catch (err) { alert("Failed to delete review"); }
+      toast.success("Review deleted");
+    } catch (err) { 
+      toast.error("Failed to delete review");
+      console.error(err);
+    }
   }
-
+  
   async function handleSubmitReview() {
+    if (!comment.trim()) return toast.error("Please write a comment");
+  
     try {
-      const res = await axios.post(`http://localhost:3000/api/movies/${id}/reviews`, 
-        { rating: Number(rating), comment: comment.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setReviews(prev => [res.data, ...prev]);
+      const res = await api.post(`/api/movies/${id}/reviews`, { 
+        rating: Number(rating), 
+        comment: comment.trim() 
+      });
+  
+      // 3. Update state with the new review (usually res.data.data or res.data)
+      const newReview = res.data.data || res.data;
+      setReviews(prev => [newReview, ...prev]);
+      
+      // 4. Reset UI
       setShowModal(false);
       setComment("");
       setRating(5);
-    } catch (err) { alert(err.response?.data?.message || "Error adding review"); }
+      toast.success("Review added!");
+    } catch (err) { 
+      toast.error(err.response?.data?.message || "Error adding review"); 
+    }
   }
 };
-
 const Badge = ({ icon, text }) => (
   <div className="flex items-center gap-2 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full border border-zinc-200 dark:border-zinc-700 text-[11px] font-bold uppercase text-zinc-600 dark:text-zinc-400">
     {icon} {text}
