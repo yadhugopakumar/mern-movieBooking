@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axios"; // Adjust path based on your folder structure
+import toast from "react-hot-toast";
 import { Star, MessageSquare, Film, MapPin, User, Calendar, ShieldAlert } from "lucide-react";
 
 const AdminReviews = () => {
@@ -7,19 +8,22 @@ const AdminReviews = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axios.get("http://localhost:3000/api/admin/reviews", {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-        })
-            .then(res => {
-                setReviews(res.data.data);
+        const fetchAdminReviews = async () => {
+            try {
+                // 1. URL is simplified; base URL and Token are handled by the interceptor
+                const res = await api.get("/api/admin/reviews");
+                
+                // 2. Set the data (handling potential data nesting)
+                setReviews(res.data.data || res.data);
+            } catch (err) {
+                console.error("Error fetching reviews:", err);
+                toast.error("Failed to load community reviews");
+            } finally {
                 setLoading(false);
-            })
-            .catch(err => {
-                console.error("Error fetching reviews", err);
-                setLoading(false);
-            });
+            }
+        };
+    
+        fetchAdminReviews();
     }, []);
 
     if (loading) {
