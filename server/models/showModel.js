@@ -20,12 +20,8 @@ const showSchema = new mongoose.Schema(
       type: String, // HH:mm
       required: true,
     },
-    price: {
-      type: Number,
-      required: true,
-    },
-    seats: {
-      type: Number, // total seats for this show
+    basePrice: {
+      type: Number,   // BASE PRICE
       required: true,
     },
   },
