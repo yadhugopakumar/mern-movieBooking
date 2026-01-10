@@ -1,25 +1,37 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axios"; // Adjust path to your axios.js file
 
-const IMAGE_BASE = "http://localhost:3000";
+// Dynamic Image Base: Uses Railway URL in production, localhost in dev
+const IMAGE_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 export const Carrousal = () => {
   const [slides, setSlides] = useState([]);
   const [current, setCurrent] = useState(0);
 
   // Fetch latest 3 movies
-  useEffect(() => {
-    axios
-      .get("http://localhost:3000/api/movies")
-      .then(res => {
-        const latest = res.data.data
-          .slice(-3)
-          .reverse();
-        setSlides(latest);
-      })
-      .catch(err => console.error(err));
-  }, []);
 
+useEffect(() => {
+  const fetchLatestMovies = async () => {
+    try {
+      // 1. Use the 'api' instance (it prepends the base URL automatically)
+      const res = await api.get("/api/movies");
+      
+      // 2. Extract data safely (handling possible data nesting)
+      const movieData = res.data.data || res.data;
+
+      // 3. Logic to get the 3 most recent movies
+      const latest = movieData
+        .slice(-3)
+        .reverse();
+        
+      setSlides(latest);
+    } catch (err) {
+      console.error("Error fetching hero slides:", err);
+    }
+  };
+
+  fetchLatestMovies();
+}, []);
   // Auto slide
   useEffect(() => {
     if (!slides.length) return;
