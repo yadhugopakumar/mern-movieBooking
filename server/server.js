@@ -47,14 +47,14 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /* ===== DATABASE ===== */
 // 3. ADD CONNECTION OPTIONS
+/* ===== DATABASE ===== */
+// Remove useNewUrlParser and useUnifiedTopology
 mongoose
-  .connect(process.env.MONGO_URL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("DB connection failed", err));
-
+  .connect(process.env.MONGO_URL) 
+  .then(() => console.log("✅ MongoDB connected successfully"))
+  .catch((err) => {
+    console.error("❌ DB connection failed:", err.message);
+  });
 /* ===== SERVER ===== */
 const PORT = process.env.PORT || 5000; // Cloud hosts like Render/Railway will provide this
 app.listen(PORT, '0.0.0.0', () => // Binding to 0.0.0.0 is better for some cloud hosts
