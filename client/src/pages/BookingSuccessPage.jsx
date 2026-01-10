@@ -1,64 +1,78 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { CheckCircle, ArrowRight, Ticket, CreditCard, Armchair } from "lucide-react";
 
 const BookingSuccess = () => {
   const navigate = useNavigate();
+  const [timeLeft, setTimeLeft] = useState(3);
 
-  // ⏱ Auto redirect after 3 seconds
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    const redirect = setTimeout(() => {
       navigate("/bookings");
     }, 3000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(redirect);
+      clearInterval(timer);
+    };
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white max-w-md w-full rounded-2xl shadow-xl p-8 text-center animate-fade-in">
+    <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 flex items-center justify-center px-4 transition-colors duration-200">
+      <div className="bg-white dark:bg-zinc-900 max-w-md w-full rounded-[2.5rem] shadow-2xl dark:shadow-none border border-zinc-100 dark:border-zinc-800 p-10 text-center animate-in fade-in zoom-in duration-500">
         
-        {/* Success Icon */}
-        <div className="mx-auto w-20 h-20 flex items-center justify-center rounded-full bg-green-100 mb-6">
-          <svg
-            className="w-10 h-10 text-green-600"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            viewBox="0 0 24 24"
+        {/* Animated Success Icon */}
+        <div className="relative mx-auto w-24 h-24 mb-8">
+          <div className="absolute inset-0 bg-green-500/20 dark:bg-green-500/10 rounded-full animate-ping"></div>
+          <div className="relative w-full h-full flex items-center justify-center rounded-full bg-green-500 shadow-lg shadow-green-500/40">
+            <CheckCircle className="w-12 h-12 text-white" />
+          </div>
+        </div>
+
+        {/* Title & Subtitle */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white uppercase">
+            Order Confirmed!
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400 font-medium">
+            Your cinematic experience is ready.
+          </p>
+        </div>
+
+        {/* Mini Receipt Card */}
+        <div className="mt-8 bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl p-6 text-left space-y-4 border border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center gap-3 text-sm font-bold dark:text-zinc-200">
+            <Armchair size={18} className="text-red-500" />
+            <span>Seats Reserved Successfully</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm font-bold dark:text-zinc-200">
+            <CreditCard size={18} className="text-red-500" />
+            <span>Payment Status: <span className="text-green-500 uppercase">Paid</span></span>
+          </div>
+          <div className="flex items-center gap-3 text-sm font-bold dark:text-zinc-200">
+            <Ticket size={18} className="text-red-500" />
+            <span>Confirmation: Sent to Email</span>
+          </div>
+        </div>
+
+        {/* Manual action & Timer */}
+        <div className="mt-10 space-y-4">
+          <button
+            onClick={() => navigate("/bookings")}
+            className="w-full bg-zinc-900 dark:bg-red-600 hover:bg-zinc-800 dark:hover:bg-red-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-red-600/20 flex items-center justify-center gap-2 group active:scale-95"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+            Go to My Bookings
+            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+          </button>
+          
+          <p className="text-[10px] uppercase font-bold text-zinc-400 tracking-[0.2em]">
+            Redirecting in {timeLeft} seconds...
+          </p>
         </div>
-
-        {/* Title */}
-        <h1 className="text-2xl font-extrabold text-gray-900">
-          Booking Confirmed!
-        </h1>
-
-        {/* Subtitle */}
-        <p className="text-gray-500 mt-2">
-          Your tickets have been booked successfully.
-        </p>
-
-        {/* Info Card */}
-        <div className="mt-6 bg-gray-50 rounded-xl p-4 text-sm text-gray-600 space-y-1">
-          <p>🎟 Seats reserved successfully</p>
-          <p>💳 Payment status: <span className="font-semibold text-green-600">Paid</span></p>
-          <p>📩 Confirmation will be available in bookings</p>
-        </div>
-
-        {/* Redirect message */}
-        <p className="mt-6 text-xs text-gray-400">
-          Redirecting to <span className="font-semibold">My Bookings</span> in 3 seconds…
-        </p>
-
-        {/* Manual action */}
-        <button
-          onClick={() => navigate("/bookings")}
-          className="mt-6 w-full bg-[#F84464] hover:bg-[#e63a5a] text-white py-3 rounded-lg font-bold transition-colors"
-        >
-          Go to My Bookings
-        </button>
       </div>
     </div>
   );

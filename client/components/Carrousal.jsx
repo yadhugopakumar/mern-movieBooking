@@ -38,7 +38,7 @@ export const Carrousal = () => {
   return (
     <div className="w-full space-y-4">
       <div className="flex justify-between items-end px-2">
-        <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+        <h2 className="text-3xl font-bold tracking-tight text-gray-500">
           Latest Movies
         </h2>
         <span className="text-sm font-medium text-gray-500">

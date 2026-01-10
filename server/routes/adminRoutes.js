@@ -8,15 +8,12 @@ import upload from "../middlewares/upload.js";
 const adminRouter = express.Router();
 
 
-// ===== OWNERS =====
-// adminRouter.get("/users", auth, admin, getUsers);      // fetch owners only
-// adminRouter.delete("/users/:id", auth, admin, deleteUser); // delete owner
 
 // ===== USERS =====
 adminRouter.get("/owners", auth, admin, getOwners);      // fetch owners only
 adminRouter.delete("/owner/:id", auth, admin, deleteOwner); // delete owner
 // ===== MOVIES =====
-adminRouter.put("/movie/:id", auth, admin, upload.single("poster"), updateMovie);    // edit movie
+adminRouter.put("/movie/:id", auth, admin, upload.single("poster"), updateMovie);    
 adminRouter.delete("/movie/:id", auth, admin, deleteMovie); // delete movie
 adminRouter.post(
     "/movie",

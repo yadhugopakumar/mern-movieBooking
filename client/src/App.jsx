@@ -1,141 +1,3 @@
-// import { Routes, Route, Link, useNavigate } from "react-router-dom";
-// import MyBookings from "./pages/MyBookings";
-// import Login from "./pages/Login";
-// import HomePage from "./pages/HomePage";
-// import { isLoggedIn } from "../utlis/auth.js";
-// import { useState, useEffect } from "react";
-// import Search from "./pages/Search";
-// import Register from "./pages/Register";
-// import MovieDetails from "./pages/MovieDetails";
-// import SeatSelection from "./pages/SeatSelection";
-// import ProtectedRoutes from "../components/ProtectedRoutes";
-// import BookingSuccess from "./pages/BookingSuccessPage.jsx";
-// import ProfilePage from "./pages/ProfilePage.jsx";
-
-
-// function App() {
-//   const [query, setQuery] = useState("");
-//   const [isAuth, setIsAuth] = useState(isLoggedIn());
-
-//   useEffect(() => {
-//     const syncAuth = () => setIsAuth(isLoggedIn());
-//     window.addEventListener("storage", syncAuth);
-//     syncAuth();
-
-//     return () => window.removeEventListener("storage", syncAuth);
-//   }, []);
-
-
-
-//   const navigate = useNavigate();
-
-
-//   const handleSearch = () => {
-//     if (!query.trim()) return;
-//     navigate(`/search?q=${query}`);
-//   };
-
-//   return (
-//     <>
-//       <nav className="bg-gray-900 text-white px-6 py-4 flex items-center justify-between">
-//         <h1 className="text-xl font-semibold">🎬 MovieBook</h1>
-
-//         <div className="flex gap-6 items-center">
-//           <Link to="/" className="hover:text-yellow-400">Home</Link>
-//           <Link to="/bookings" className="hover:text-yellow-400">My Bookings</Link>
-
-//           {/* Search Box */}
-//           <div className="flex items-center bg-white rounded-full overflow-hidden">
-//             <input
-//               type="text"
-//               value={query}
-//               onChange={(e) => setQuery(e.target.value)}
-//               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-//               placeholder="Search movies, theatres..."
-//               className="px-4 py-2 text-gray-800 outline-none"
-//             />
-//             <button
-//               onClick={handleSearch}
-//               className="bg-yellow-400 px-4 py-2 font-bold text-black hover:bg-yellow-500"
-//             >
-//               Search
-//             </button>
-//           </div>
-
-//           {!isAuth ? (
-//             <>
-//               <Link
-//                 to="/login"
-//                 className="bg-yellow-400 text-black px-4 py-1 rounded hover:bg-yellow-500"
-//               >
-//                 Login
-//               </Link>
-
-//               <Link
-//                 to="/register"
-//                 className="bg-yellow-400 text-black px-4 py-1 rounded hover:bg-yellow-500"
-//               >
-//                 Register
-//               </Link>
-//             </>
-//           ) : (
-//             <div className="flex items-center gap-4">
-//               <Link
-//                 to="/profile"
-//                 className="hover:text-yellow-400"
-//               >
-//                 Profile
-//               </Link>
-
-//               <button
-//                 onClick={() => {
-//                   localStorage.removeItem("token");
-//                   localStorage.removeItem("role");
-//                   setIsAuth(false);
-//                   navigate("/");
-//                 }}
-
-//                 className="bg-gray-700 px-3 py-1 rounded hover:bg-gray-600"
-//               >
-//                 Logout
-//               </button>
-//             </div>
-//           )}
-
-//         </div>
-//       </nav>
-
-//       <main className="min-h-screen bg-gray-100 ">
-//         <Routes>
-//           <Route path="/" element={<HomePage />} />
-
-//           <Route path="/bookings" element={
-//             <ProtectedRoutes>
-//               <MyBookings />
-//             </ProtectedRoutes>}
-//           />
-//           <Route path="/profile" element={
-//             <ProtectedRoutes>
-//               <ProfilePage />
-//             </ProtectedRoutes>}
-//           />
-//           <Route path="/login" element={<Login />} />
-//           <Route path="/register" element={<Register />} />
-//           <Route path="/search" element={<Search />} />
-//           <Route path="/movie/:id" element={<MovieDetails />} />
-//           <Route path="/show/:showId/seats" element={
-//             <ProtectedRoutes>
-//               <SeatSelection />
-//             </ProtectedRoutes>
-//           } />
-//           <Route path="/booking-success" element={<BookingSuccess />} />
-
-//         </Routes>
-//       </main>
-//     </>
-//   );
-// }
-// export default App;
 
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -163,7 +25,6 @@ import MyShows from "./pages/owner/MyShows";
 // ADMIN PAGE
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import HomeGuard from "../routes/HomeGuard.jsx";
-import ManageUsers from "./pages/admin/ManageAdminBookings.jsx";
 import ManageOwners from "./pages/admin/ManageOwners.jsx";
 import ManageMovies from "./pages/admin/ManageMovies.jsx";
 import AddMovie from "./pages/admin/AddMoviePage.jsx";
@@ -172,6 +33,9 @@ import EditMovie from "./pages/admin/EditMovie.jsx";
 import ManageAdminBookings from "./pages/admin/ManageAdminBookings.jsx";
 import AdminReviews from "./pages/admin/AdminReviews.jsx";
 import OwnerReviews from "./pages/owner/OwnerReviews.jsx";
+import OwnerAllBookings from "./pages/owner/OwnerAllBookings.jsx";
+import OwnerTodayBookings from "./pages/owner/OwnerTodayBookings.jsx";
+import ThemeToggle from "../components/ThemeToggle.jsx";
 
 function App() {
   const [query, setQuery] = useState("");
@@ -217,6 +81,8 @@ function App() {
         </h1>
 
         <div className="flex gap-6 items-center">
+
+        <ThemeToggle />
           {/* HOME + SEARCH → ONLY USER / GUEST */}
           {(!isAuth || role === "user") && (
             <>
@@ -396,10 +262,10 @@ function App() {
             path="/admin/reviews"
             element={<AdminRoutes><AdminReviews /></AdminRoutes>}
           />
-<Route
-  path="/owner/reviews"
-  element={<OwnerRoutes><OwnerReviews /></OwnerRoutes>}
-/>
+          <Route
+            path="/owner/reviews"
+            element={<OwnerRoutes><OwnerReviews /></OwnerRoutes>}
+          />
 
           {/* PUBLIC */}
           <Route path="/login" element={<Login />} />
@@ -407,7 +273,8 @@ function App() {
           <Route path="/search" element={<Search />} />
           <Route path="/movie/:id" element={<MovieDetails />} />
           <Route path="/booking-success" element={<BookingSuccess />} />
-
+          <Route path="/owner/all-bookings" element={<OwnerAllBookings />} />
+          <Route path="/owner/today-bookings" element={<OwnerTodayBookings />} />
 
         </Routes>
       </main>

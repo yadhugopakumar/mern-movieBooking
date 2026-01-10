@@ -152,18 +152,17 @@ export const searchTheaters = async (req, res) => {
     res.json({ message: "Seats locked" });
   };
   
-
   export const createBooking = async (req, res) => {
     try {
       const { showId, seats, totalAmount } = req.body;
   
       // 1️⃣ Validate show
-      const show = await Show.findById(showId);
+      const show = await Show.findById(showId).populate("theaterId movieId");
       if (!show) {
         return res.status(404).json({ message: "Show not found" });
       }
   
-      // 2️⃣ Ensure seats are LOCKED and NOT booked
+      // 2️⃣ Check locked seats
       const lockedSeats = await Seat.find({
         show: showId,
         seatNumber: { $in: seats },
@@ -177,23 +176,32 @@ export const searchTheaters = async (req, res) => {
         });
       }
   
-      // 3️⃣ Book seats & unlock them
+      // 3️⃣ Book seats
       await Seat.updateMany(
-        {
-          show: showId,
-          seatNumber: { $in: seats },
-        },
-        {
-          isBooked: true,
-          isLocked: false,
-        }
+        { show: showId, seatNumber: { $in: seats } },
+        { isBooked: true, isLocked: false }
       );
   
-      // 4️⃣ Create booking
+      // 4️⃣ Create booking WITH SNAPSHOT ✅
       const booking = await Bookings.create({
         user: req.user.id,
-        theater: show.theaterId,
-        show: showId,
+  
+        // optional refs
+        theater: show.theaterId._id,
+        show: show._id,
+  
+        // snapshot data (IMPORTANT)
+        theaterDetails: {
+          name: show.theaterId.name,
+          location: show.theaterId.location,
+        },
+  
+        showDetails: {
+          date: show.date,
+          time: show.time,
+          movieName: show.movieId.title,
+        },
+  
         seats,
         totalAmount,
         paymentStatus: "paid",
@@ -211,19 +219,18 @@ export const searchTheaters = async (req, res) => {
     }
   };
   
-
-
-export const getMyBookings = async (req, res) => {
-  console.log("REQ.USER:", req.user);
-  console.log("REQ.USER.ID:", req.user?.id);
-
-  const bookings = await Bookings.find({ user: req.user.id })
-    .populate("show", "date time price")
-    .populate("theater", "name location");
-
-  res.json(bookings);
-};
-
+  export const getMyBookings = async (req, res) => {
+    try {
+      const bookings = await Bookings.find({ user: req.user.id })
+        .populate("show", "date time price")
+        .populate("theater", "name location")
+        .sort({ createdAt: -1 }); 
+  
+      res.json(bookings);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching bookings", error });
+    }
+  };
         
 
 // Get reviews for a movie
