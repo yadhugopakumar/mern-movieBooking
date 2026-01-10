@@ -1,9 +1,9 @@
 import { useState } from "react";
 import AuthLayout from "../../components/AuthLayout";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { User, Mail, Lock, Loader2 } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
+import api from "../api/axios"; // Import your centralized instance
 
 
 const Register = () => {
@@ -25,10 +25,11 @@ const Register = () => {
   };
 
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+  
     try {
       const payload = {
         name: `${form.firstName} ${form.lastName}`,
@@ -36,25 +37,24 @@ const Register = () => {
         password: form.password,
         role: form.role,
       };
-
-      const res = await axios.post("http://localhost:3000/api/auth/signup", payload);
-
-      // If we reach here, it's a 201 Success
+  
+      // Use 'api' instead of 'axios' with the full URL
+      const res = await api.post("/api/auth/signup", payload);
+  
       toast.success('Registration Successful!', {
         style: { borderRadius: '12px', background: '#27272a', color: '#fff' },
       });
-
+  
+      // Short delay to let the user see the success message
       setTimeout(() => navigate("/login"), 1500);
-
+  
     } catch (err) {
-      // Check if the server sent a specific error message
+      // Correctly extract the message from your backend (e.g., "User already exists")
       const errorMessage = err.response?.data?.message || "Something went wrong";
-
-      // This will now show "User already exists" if that's what the backend sent
+  
       toast.error(errorMessage, {
         style: { borderRadius: '12px', background: '#27272a', color: '#fff' },
       });
-
     } finally {
       setLoading(false);
     }
