@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
-import { Ticket, MapPin, Calendar, Clock, Loader2, Download, QrCode, Armchair } from "lucide-react";
+import api from "../api/axios"; // Use your custom instance
+import toast from "react-hot-toast";
+import {  MapPin, Calendar, Clock, Loader2, Download, QrCode, Armchair } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -10,19 +11,30 @@ const MyBookings = () => {
   const [isGenerating, setIsGenerating] = useState(null);
   const token = localStorage.getItem("token");
 
+  
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/api/bookings/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
+    const fetchMyBookings = async () => {
+      // 1. Safety check
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+  
+      try {
+        // 2. Simplified GET request
+        // The Interceptor automatically adds the Authorization header
+        const res = await api.get("/api/bookings/me");
+        
         setBookings(res.data);
-        setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("Bookings API error:", err);
+        toast.error("Failed to load your booking history");
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+  
+    fetchMyBookings();
   }, [token]);
 
   const handleDownload = async (booking) => {
