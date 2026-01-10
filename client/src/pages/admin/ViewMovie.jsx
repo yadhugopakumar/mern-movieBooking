@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+// 1. Import your custom api instance
+import api from "../api/axios"; 
 import { ArrowLeft, Edit3, Clock, Globe, Film, Info, Loader2 } from "lucide-react";
 
-const IMAGE_BASE = "http://localhost:3000";
+// 2. Dynamically set the IMAGE_BASE based on your environment
+const IMAGE_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 const ViewMovie = () => {
   const { id } = useParams();
@@ -12,25 +14,21 @@ const ViewMovie = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get(`http://localhost:3000/api/movies/${id}`)
+    // 3. Use the 'api' instance (it automatically adds the base URL)
+    api.get(`/api/movies/${id}`)
       .then((res) => {
-        setMovie(res.data.data);
-        setLoading(false);
+        // Adjust depending on if your backend wraps data in .data.data
+        setMovie(res.data.data || res.data);
       })
       .catch((err) => {
         console.error("Error fetching movie:", err);
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-red-600" size={40} />
-      </div>
-    );
-  }
+  // Rest of your logic...
 
   if (!movie) {
     return (
