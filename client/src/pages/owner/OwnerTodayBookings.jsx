@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axios"; // Use your custom instance
+import toast from "react-hot-toast";
 import { MapPin, Film, Users, X, Info, LayoutGrid, ReceiptText, Loader2 } from "lucide-react";
 
 export default function OwnerTodayBookings() {
@@ -7,15 +8,29 @@ export default function OwnerTodayBookings() {
   const [loading, setLoading] = useState(true);
   const [selectedShow, setSelectedShow] = useState(null); // For Modal
 
-  useEffect(() => {
-    axios.get("http://127.0.0.1:3000/api/owner/bookings/today", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    }).then(res => {
-      setBookings(res.data.data);
-      setLoading(false);
-    });
-  }, []);
 
+  
+  useEffect(() => {
+    const fetchTodayBookings = async () => {
+      try {
+        // 1. Simplified URL and automatic Bearer token injection via interceptor
+        const res = await api.get("/api/owner/bookings/today");
+        
+        // 2. Map the data based on your backend response structure
+        setBookings(res.data.data || res.data);
+      } catch (err) {
+        console.error("Dashboard Fetch Error:", err);
+        
+        // 3. Inform the owner if the fetch fails
+        const errorMsg = err.response?.data?.message || "Failed to load today's bookings";
+        toast.error(errorMsg);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    fetchTodayBookings();
+  }, []);
   // Grouping Logic: Theatre -> Movie -> Bookings
   const grouped = bookings.reduce((acc, b) => {
     const theater = b.theaterDetails?.name || "General";
