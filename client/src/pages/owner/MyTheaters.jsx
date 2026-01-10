@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axios"; // Your custom instance
+import toast from "react-hot-toast";
 import { Edit, Trash2, MapPin, Armchair, X, Plus } from "lucide-react";
 
 const MyTheaters = () => {
@@ -13,26 +14,35 @@ const MyTheaters = () => {
         fetchTheaters();
     }, []);
 
+
     const fetchTheaters = async () => {
         try {
-            const res = await axios.get("http://localhost:3000/api/owner/theater", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setTheaters(res.data);
+            // 1. Interceptor handles the Bearer token automatically
+            const res = await api.get("/api/owner/theater");
+
+            // Ensure data mapping matches your backend response
+            setTheaters(res.data.data || res.data);
         } catch (err) {
             console.error("Error fetching theaters", err);
+            toast.error("Failed to load theaters");
         }
     };
 
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this theater?")) return;
+
         try {
-            await axios.delete(`http://localhost:3000/api/owner/theater/${id}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            // 2. Switched to relative path with the 'api' instance
+            await api.delete(`/api/owner/theater/${id}`);
+
+            toast.success("Theater deleted successfully");
+
+            // 3. Refresh the list
             fetchTheaters();
         } catch (err) {
-            alert("Failed to delete theater");
+            console.error("Delete error:", err);
+            const errorMsg = err.response?.data?.message || "Failed to delete theater";
+            toast.error(errorMsg);
         }
     };
 
@@ -70,13 +80,13 @@ const MyTheaters = () => {
                                             </div>
                                         </div>
                                         <div className="flex gap-1">
-                                            <button 
+                                            <button
                                                 onClick={() => { setSelectedTheater(theater); setEditModalOpen(true); }}
                                                 className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-blue-500 transition"
                                             >
                                                 <Edit size={18} />
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleDelete(theater._id)}
                                                 className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-red-500 transition"
                                             >
@@ -120,10 +130,10 @@ const MyTheaters = () => {
             {/* EDIT MODAL */}
             {editModalOpen && selectedTheater && (
                 <Modal title="Edit Theater" onClose={() => setEditModalOpen(false)}>
-                    <EditTheaterForm 
-                        theater={selectedTheater} 
-                        token={token} 
-                        onSuccess={() => { setEditModalOpen(false); fetchTheaters(); }} 
+                    <EditTheaterForm
+                        theater={selectedTheater}
+                        token={token}
+                        onSuccess={() => { setEditModalOpen(false); fetchTheaters(); }}
                     />
                 </Modal>
             )}
@@ -154,15 +164,20 @@ const EditTheaterForm = ({ theater, token, onSuccess }) => {
         setForm({ ...form, seatLayout: [...form.seatLayout, { row: "", seatCount: "", price: "" }] });
     };
 
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.put(`http://localhost:3000/api/owner/theater/${theater._id}`, form, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            onSuccess();
+            // 1. Using 'api' instance to automatically use your Railway URL
+            // 2. The Interceptor handles the 'Bearer' token injection
+            await api.put(`/api/owner/theater/${theater._id}`, form);
+
+            toast.success("Theater updated successfully!");
+            onSuccess(); // Close modal or refresh data
         } catch (err) {
-            alert("Error updating theater");
+            console.error("Update error:", err);
+            const errorMsg = err.response?.data?.message || "Error updating theater";
+            toast.error(errorMsg);
         }
     };
 
@@ -181,7 +196,7 @@ const EditTheaterForm = ({ theater, token, onSuccess }) => {
                         <Plus size={14} /> ADD ROW
                     </button>
                 </div>
-                
+
                 <div className="max-h-52 overflow-y-auto space-y-2 pr-1">
                     {form.seatLayout.map((row, idx) => (
                         <div key={idx} className="flex gap-2">
