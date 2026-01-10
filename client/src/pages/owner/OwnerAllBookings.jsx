@@ -1,19 +1,28 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axios"; // Your centralized instance
+import toast from "react-hot-toast";
 import { Receipt } from "lucide-react";
 
 export default function OwnerAllBookings() {
   const [bookings, setBookings] = useState([]);
 
+
   useEffect(() => {
-    axios
-      .get("http://127.0.0.1:3000/api/owner/bookings", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-      .then((res) => setBookings(res.data.data))
-      .catch(console.error);
+    const fetchAllBookings = async () => {
+      try {
+        // 1. Simplified URL: 'api' already knows your Railway base URL
+        // 2. No manual headers: interceptor adds the token automatically
+        const res = await api.get("/api/owner/bookings");
+        
+        // 3. Handle both res.data.data or res.data depending on your backend
+        setBookings(res.data.data || res.data);
+      } catch (err) {
+        console.error("Error fetching all bookings:", err);
+        toast.error("Failed to load booking history");
+      }
+    };
+  
+    fetchAllBookings();
   }, []);
 
   // Group by Date -> Theatre
