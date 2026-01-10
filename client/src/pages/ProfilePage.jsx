@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axios"; // Use your custom instance
 import { FiEdit2, FiCheck, FiUser, FiMail, FiShield } from "react-icons/fi";
 
 const ProfilePage = () => {
@@ -10,21 +10,36 @@ const ProfilePage = () => {
 
   const token = localStorage.getItem("token");
 
+
   useEffect(() => {
     const fetchProfile = async () => {
+      // 1. If no token exists, don't bother fetching
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+  
       try {
-        const res = await axios.get("http://localhost:3000/api/auth/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // 2. Simplified URL and removed manual headers
+        // The interceptor handles "Bearer " + token automatically
+        const res = await api.get("/api/auth/profile");
+        
         setUser(res.data.user);
       } catch (err) {
         console.error("Failed to fetch profile", err);
+        
+        // 3. Optional: Clear local storage if token is invalid/expired
+        if (err.response?.status === 401) {
+          localStorage.clear();
+          navigate("/login");
+        }
       } finally {
         setLoading(false);
       }
     };
+  
     fetchProfile();
-  }, [token]);
+  }, [token, navigate]); // Add navigate to dependencies if you use the 401 redirect
 
   const handleSave = async () => {
     setIsUpdating(true);
