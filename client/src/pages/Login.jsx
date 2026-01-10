@@ -1,10 +1,14 @@
 import React, { useState } from "react";
 import AuthLayout from "../../components/AuthLayout";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+import api from "../api/axios"; // Use your custom instance
 import { Mail, Lock, Loader2 } from "lucide-react";
 // 1. Import toast and Toaster
 import toast, { Toaster } from "react-hot-toast";
+
+import api from "../api/axios"; // Import your custom instance
+
+
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -16,57 +20,63 @@ const Login = () => {
   const location = useLocation();
   const from = location.state?.from?.pathname || "/";
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
 
-    try {
-      const res = await axios.post("http://localhost:3000/api/auth/login", {
-        email,
-        password,
-      });
-      
-      // 2. Add Success Toast
-      toast.success(`Welcome back, ${res.data.user.name}!`, {
-        style: {
-          borderRadius: '12px',
-          background: '#27272a',
-          color: '#fff',
-        },
-      });
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("userId", res.data.user.id);
-      localStorage.setItem("userName", res.data.user.name);
-      localStorage.setItem("role", res.data.user.role);
+  try {
+    // 1. Swapped axios for api and used a relative path
+    const res = await api.post("/api/auth/login", {
+      email,
+      password,
+    });
+    
+    // 2. Success Toast
+    toast.success(`Welcome back, ${res.data.user.name}!`, {
+      style: {
+        borderRadius: '12px',
+        background: '#27272a',
+        color: '#fff',
+      },
+    });
 
-      window.dispatchEvent(new Event("storage"));
+    // 3. Store user data
+    localStorage.setItem("token", res.data.token);
+    localStorage.setItem("userId", res.data.user.id || res.data.user._id);
+    localStorage.setItem("userName", res.data.user.name);
+    localStorage.setItem("role", res.data.user.role);
 
-      // Small delay so they see the success message
-      setTimeout(() => {
-        if (res.data.user.role === "owner") {
-          navigate("/owner/dashboard", { replace: true });
-        } else if (res.data.user.role === "admin") {
-          navigate("/admin/dashboard", { replace: true });
-        } else {
-          navigate(from, { replace: true });
-        }
-      }, 1000);
+    // Trigger storage event to update Navbar/UI
+    window.dispatchEvent(new Event("storage"));
 
-    } catch (err) {
-      // 3. Add Error Toast
-      const errorMsg = err.response?.data?.message || "Login failed. Please check your credentials.";
-      toast.error(errorMsg, {
-        style: {
-          borderRadius: '12px',
-          background: '#27272a',
-          color: '#fff',
-        },
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    // 4. Role-based Navigation
+    setTimeout(() => {
+      const role = res.data.user.role;
+      if (role === "owner") {
+        navigate("/owner/dashboard", { replace: true });
+      } else if (role === "admin") {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
+        // 'from' usually refers to the page they tried to visit before being redirected to login
+        navigate(from || "/", { replace: true });
+      }
+    }, 1000);
+
+  } catch (err) {
+    // 5. Error Handling
+    const errorMsg = err.response?.data?.message || "Login failed. Check your credentials.";
+    toast.error(errorMsg, {
+      style: {
+        borderRadius: '12px',
+        background: '#27272a',
+        color: '#fff',
+      },
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const inputClass = "w-full bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-xl px-10 py-3 text-zinc-900 dark:text-white focus:ring-2 ring-yellow-400 outline-none transition-all placeholder:text-zinc-400";
 
