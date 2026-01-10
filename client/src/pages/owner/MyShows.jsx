@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axios"; // Your custom instance
+import toast from "react-hot-toast";
 import { Calendar, Clock, Banknote, Users, Edit, Trash2, X, Ticket } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -14,38 +15,44 @@ const MyShows = () => {
         fetchShows();
     }, []);
 
+    
     const fetchShows = async () => {
         try {
-            const res = await axios.get("http://localhost:3000/api/owner/shows", {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setShows(res.data);
+            // The interceptor handles the token automatically
+            const res = await api.get("/api/owner/shows");
+            
+            // Handle data mapping (checks for res.data.data or res.data)
+            setShows(res.data.data || res.data);
         } catch (err) {
             console.error("Error fetching shows", err);
+            toast.error("Failed to load shows");
         }
     };
-
+    
     const openBookings = async (showId) => {
         try {
-            const res = await axios.get(`http://localhost:3000/api/owner/shows/${showId}/bookings`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setBookings(res.data);
+            const res = await api.get(`/api/owner/shows/${showId}/bookings`);
+            
+            setBookings(res.data.data || res.data);
             setShowBookingsModal(true);
         } catch (err) {
             console.error("Error fetching bookings", err);
+            toast.error("Could not load booking details");
         }
     };
-
+    
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this show?")) return;
+        
         try {
-            await axios.delete(`http://localhost:3000/api/owner/show/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            fetchShows();
+            await api.delete(`/api/owner/show/${id}`);
+            
+            toast.success("Show deleted successfully");
+            fetchShows(); // Refresh the list
         } catch (err) {
-            alert("Failed to delete show");
+            console.error("Delete error:", err);
+            const errorMsg = err.response?.data?.message || "Failed to delete show";
+            toast.error(errorMsg);
         }
     };
 
@@ -187,37 +194,41 @@ useEffect(() => {
         });
     }
 }, [show]);
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      try {
-          const payload = {
-              date: form.date,
-              time: form.time,
-              basePrice: Number(form.basePrice),
-          };
 
-          await axios.put(
-              `http://localhost:3000/api/owner/show/${show._id}`, 
-              payload, 
-              { headers: { Authorization: `Bearer ${token}` } }
-          );
-
-          toast.success("Show updated successfully!");
-          onSuccess();
-      } catch (err) {
-          // Trigger the specific alert you requested
-          toast.error("Update failed. Check if seats are already booked.", {
-              duration: 4000,
-              style: {
-                  borderRadius: '12px',
-                  background: '#27272a',
-                  color: '#fff',
-                  border: '1px solid #3f3f46'
-              },
-          });
-          console.error("Update Error:", err);
-      }
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const payload = {
+      date: form.date,
+      time: form.time,
+      basePrice: Number(form.basePrice),
     };
+
+    // 1. Switched axios for api (No more localhost!)
+    // 2. Interceptor automatically handles the Bearer token
+    await api.put(`/api/owner/show/${show._id}`, payload);
+
+    toast.success("Show updated successfully!", {
+      style: { borderRadius: '12px', background: '#27272a', color: '#fff' }
+    });
+    
+    onSuccess();
+  } catch (err) {
+    // 3. Keep your custom error logic for booked seats
+    const errorMsg = err.response?.data?.message || "Update failed. Check if seats are already booked.";
+    
+    toast.error(errorMsg, {
+      duration: 4000,
+      style: {
+        borderRadius: '12px',
+        background: '#27272a',
+        color: '#fff',
+        border: '1px solid #3f3f46'
+      },
+    });
+    console.error("Update Error:", err);
+  }
+};
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
