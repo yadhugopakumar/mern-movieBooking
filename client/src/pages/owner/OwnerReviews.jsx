@@ -1,20 +1,31 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+
+import api from "../api/axios"; // Your custom instance
+import toast from "react-hot-toast";
 import { Star, MessageSquare, Film, MapPin, User } from "lucide-react";
 
 const OwnerReviews = () => {
     const [reviews, setReviews] = useState([]);
 
-    useEffect(() => {
-        axios.get("http://localhost:3000/api/owner/reviews", {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-        })
-            .then(res => setReviews(res.data.data))
-            .catch(err => console.error("Error fetching reviews", err));
-    }, []);
 
+    useEffect(() => {
+        const fetchOwnerReviews = async () => {
+            try {
+                // 1. Simplified URL & auto-injected headers
+                const res = await api.get("/api/owner/reviews");
+
+                // 2. Map data based on your backend response structure
+                setReviews(res.data.data || res.data);
+            } catch (err) {
+                console.error("Error fetching reviews", err);
+
+                // 3. User feedback for errors
+                toast.error("Failed to load movie reviews");
+            }
+        };
+
+        fetchOwnerReviews();
+    }, []);
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 p-6 transition-colors duration-200">
             <div className="max-w-4xl mx-auto">
@@ -32,8 +43,8 @@ const OwnerReviews = () => {
                 ) : (
                     <div className="space-y-4">
                         {reviews.map((r) => (
-                            <div 
-                                key={r._id} 
+                            <div
+                                key={r._id}
                                 className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-4"
                             >
                                 <div className="flex justify-between items-start">
@@ -64,7 +75,7 @@ const OwnerReviews = () => {
                                         {r.comment || "No written comment provided."}
                                     </p>
                                 </div>
-                                
+
                                 {r.createdAt && (
                                     <p className="text-[10px] text-zinc-400 text-right pt-2 border-t border-zinc-50 dark:border-zinc-800">
                                         Posted on {new Date(r.createdAt).toLocaleDateString()}
@@ -84,10 +95,10 @@ const StarRating = ({ rating }) => {
     return (
         <div className="flex gap-0.5">
             {[...Array(5)].map((_, i) => (
-                <Star 
-                    key={i} 
-                    size={14} 
-                    className={i < rating ? "fill-yellow-500 text-yellow-500" : "text-zinc-300 dark:text-zinc-700"} 
+                <Star
+                    key={i}
+                    size={14}
+                    className={i < rating ? "fill-yellow-500 text-yellow-500" : "text-zinc-300 dark:text-zinc-700"}
                 />
             ))}
         </div>
