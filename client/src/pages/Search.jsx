@@ -1,113 +1,177 @@
-import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
-import { Search as SearchIcon, MapPin, Calendar, Clock, Ticket, Loader2 } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ChevronLeft, Armchair, Loader2, CreditCard } from "lucide-react";
+import api from "../api/axios";
+import toast, { Toaster } from "react-hot-toast"; // Added Toaster import
 
-const Search = () => {
+const SeatSelection = () => {
+  const { showId } = useParams();
   const navigate = useNavigate();
-  const query = new URLSearchParams(useLocation().search).get("q");
-  const [shows, setShows] = useState([]);
+
+  const [seatMap, setSeatMap] = useState({});
+  const [selectedSeats, setSelectedSeats] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
+  // FIXED: Removed nested useEffect and kept it clean
   useEffect(() => {
-    if (!query) {
-      setLoading(false);
-      return;
-    }
+    const fetchSeats = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/api/user/shows/${showId}/seats`);
+        
+        const grouped = {};
+        res.data.forEach((seat) => {
+          const row = seat.seatNumber[0];
+          if (!grouped[row]) grouped[row] = [];
+          grouped[row].push(seat);
+        });
 
-    setLoading(true);
-    axios
-      .get(`http://localhost:3000/api/search-theaters?query=${query}`)
-      .then(res => {
-        setShows(res.data.data);
+        setSeatMap(grouped);
+      } catch (err) {
+        console.error("Failed to load seats:", err);
+        toast.error("Could not load seat layout");
+      } finally {
         setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, [query]);
+      }
+    };
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center bg-gray-50 dark:bg-zinc-950">
-        <Loader2 className="animate-spin text-yellow-500" size={40} />
-      </div>
+    if (showId) fetchSeats();
+  }, [showId]);
+
+  const toggleSeat = (seat) => {
+    if (seat.isBooked || seat.isLocked) return;
+    setSelectedSeats((prev) =>
+      prev.includes(seat.seatNumber)
+        ? prev.filter((s) => s !== seat.seatNumber)
+        : [...prev, seat.seatNumber]
     );
-  }
+  };
+
+  // Calculate price safely
+  const totalPrice = Object.values(seatMap)
+    .flat()
+    .filter((seat) => selectedSeats.includes(seat.seatNumber))
+    .reduce((sum, seat) => sum + seat.price, 0);
+
+  const handleFinalBooking = async (paymentId) => {
+    setIsProcessing(true);
+    try {
+      // 1. Lock seats
+      await api.post("/api/seats/lock", { showId, seats: selectedSeats });
+
+      // 2. Create booking
+      await api.post("/api/bookings", { 
+        showId, 
+        seats: selectedSeats, 
+        totalAmount: totalPrice,
+        paymentId 
+      });
+
+      toast.success("Tickets Booked Successfully!");
+      setTimeout(() => navigate("/booking-success"), 1500);
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || "Booking failed.";
+      toast.error(errorMsg);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (selectedSeats.length === 0) return;
+
+    const options = {
+      key: "rzp_test_UZxFx9Yabljqin", 
+      amount: totalPrice * 100,
+      currency: "INR",
+      name: "CinePass",
+      description: "Movie Ticket Booking",
+      handler: async function (response) {
+        await handleFinalBooking(response.razorpay_payment_id);
+      },
+      prefill: {
+        name: localStorage.getItem("userName") || "Guest User",
+        email: "user@example.com",
+      },
+      theme: { color: "#DC2626" },
+    };
+
+    const rzp1 = new window.Razorpay(options);
+    rzp1.open();
+  };
+
+  if (loading || isProcessing) return (
+    <div className="h-screen flex flex-col items-center justify-center bg-zinc-950">
+      <Toaster />
+      <Loader2 className="animate-spin text-red-600 mb-4" size={48} />
+      <p className="text-zinc-400 animate-pulse">
+        {isProcessing ? "Finalizing Booking..." : "Loading Seats..."}
+      </p>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 p-6 transition-colors duration-200">
-      <div className="max-w-4xl mx-auto space-y-8">
-        
-        {/* Header */}
-        <header className="space-y-2">
-          <div className="flex items-center gap-3 text-zinc-500">
-            <SearchIcon size={20} />
-            <span className="text-sm font-bold uppercase tracking-widest">Search Results</span>
+    <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 pb-32">
+      <Toaster position="top-center" />
+      <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-50">
+        <div className="max-w-4xl mx-auto p-4 flex items-center gap-4">
+          <button onClick={() => navigate(-1)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full">
+            <ChevronLeft size={24} />
+          </button>
+          <div>
+            <h1 className="font-bold text-lg">Choose Your Seats</h1>
+            <p className="text-[10px] uppercase tracking-widest text-zinc-500">₹{totalPrice} Payable</p>
           </div>
-          <h1 className="text-3xl md:text-4xl font-black">
-            Showing results for: <span className="text-yellow-500">"{query}"</span>
-          </h1>
-        </header>
+        </div>
+      </header>
 
-        {shows.length === 0 ? (
-          <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800">
-            <Ticket className="mx-auto mb-4 text-zinc-300 dark:text-zinc-700" size={60} />
-            <p className="text-zinc-500 dark:text-zinc-400 text-lg font-medium">No screenings found</p>
-            <p className="text-zinc-400 text-sm">Try searching for a different movie or theater.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {shows.map(show => (
-              <div
-                key={show._id}
-                className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm hover:shadow-xl hover:border-yellow-500/50 transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-6"
-              >
-                {/* Left: Info */}
-                <div className="space-y-3">
-                  <h2 className="text-2xl font-black dark:text-white group-hover:text-yellow-500 transition-colors">
-                    {show.movieId.title}
-                  </h2>
-                  
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-x-6 gap-y-2">
-                    <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 font-medium">
-                      <MapPin size={16} className="text-red-500" />
-                      {show.theaterId.name} • {show.theaterId.location}
-                    </div>
-                  </div>
+      <main className="max-w-5xl mx-auto p-6">
+        <div className="relative flex flex-col items-center mb-20">
+          <div className="w-full max-w-[600px] h-[4px] bg-red-600 shadow-[0_0_20px_rgba(220,38,38,0.5)] rounded-full"></div>
+          <p className="text-[10px] mt-4 tracking-[0.5em] font-black uppercase text-zinc-400">Screen This Way</p>
+        </div>
 
-                  <div className="flex flex-wrap gap-3">
-                    <span className="flex items-center gap-1.5 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full text-xs font-bold text-zinc-600 dark:text-zinc-300">
-                      <Calendar size={14} /> {new Date(show.date).toLocaleDateString()}
-                    </span>
-                    <span className="flex items-center gap-1.5 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full text-xs font-bold text-zinc-600 dark:text-zinc-300">
-                      <Clock size={14} /> {show.time}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Right: Price & Action */}
-                <div className="flex items-center justify-between md:flex-col md:items-end gap-4 border-t md:border-t-0 pt-4 md:pt-0 border-zinc-100 dark:border-zinc-800">
-                  <div className="text-left md:text-right">
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Starting from</p>
-                    <p className="text-2xl font-black text-zinc-900 dark:text-white">₹{show.basePrice}</p>
-                  </div>
-                  
+        <div className="flex flex-col gap-10 items-center overflow-x-auto py-4">
+          {Object.entries(seatMap).map(([row, seats]) => (
+            <div key={row} className="flex items-center gap-6 min-w-max">
+              <span className="text-xs font-black text-zinc-400 w-4">{row}</span>
+              <div className="flex gap-3">
+                {seats.map((seat) => (
                   <button
-                    onClick={() => navigate(`/show/${show._id}/seats`)}
-                    className="bg-yellow-400 hover:bg-yellow-500 text-zinc-900 px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-yellow-400/20 active:scale-95"
+                    key={seat.seatNumber}
+                    disabled={seat.isBooked || seat.isLocked}
+                    onClick={() => toggleSeat(seat)}
+                    className={`w-8 h-8 rounded-lg border-2 transition-all flex items-center justify-center ${
+                        selectedSeats.includes(seat.seatNumber) 
+                        ? "bg-red-600 border-red-600 text-white" 
+                        : "border-zinc-300 dark:border-zinc-700 hover:border-red-500"
+                    } ${seat.isBooked || seat.isLocked ? "bg-zinc-800 opacity-20 cursor-not-allowed" : ""}`}
                   >
-                    Book Now
+                    <Armchair size={14} />
                   </button>
-                </div>
+                ))}
               </div>
-            ))}
+            </div>
+          ))}
+        </div>
+      </main>
+
+      {selectedSeats.length > 0 && (
+        <footer className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-t border-zinc-200 dark:border-zinc-800 p-6 z-50">
+          <div className="max-w-4xl mx-auto flex justify-between items-center">
+            <div>
+              <p className="text-2xl font-black">₹{totalPrice}</p>
+              <p className="text-xs text-zinc-400">{selectedSeats.length} Seats Selected</p>
+            </div>
+            <button onClick={handlePayment} className="bg-red-600 hover:bg-red-700 text-white px-12 py-4 rounded-2xl font-black uppercase flex items-center gap-3">
+              <CreditCard size={20} /> Pay & Book
+            </button>
           </div>
-        )}
-      </div>
+        </footer>
+      )}
     </div>
   );
 };
 
-export default Search;
+export default SeatSelection;
