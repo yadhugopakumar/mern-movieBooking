@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api/axios"; // Use your centralized instance
+import toast from "react-hot-toast";
 import { Film, Image as ImageIcon, Clock, Globe, Tag, Save, ArrowLeft, Loader2 } from "lucide-react";
 
 const AddMovie = () => {
@@ -38,17 +39,22 @@ const AddMovie = () => {
         });
       
         try {
-            await axios.post(
-                "http://localhost:3000/api/admin/movie",
-                formData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                        "Content-Type": "multipart/form-data"
-                    }
-                }
-            );
-            navigate("/admin/movies");
+         
+            
+            // Inside your handleSubmit function:
+            try {
+                // 1. Switched to 'api' instance
+                // 2. Authorization header is handled by interceptor
+                // 3. Content-Type is handled automatically by Axios for FormData
+                await api.post("/api/admin/movie", formData);
+                
+                toast.success("Movie added successfully!");
+                navigate("/admin/movies");
+            } catch (err) {
+                console.error("Error adding movie:", err);
+                const errorMsg = err.response?.data?.message || "Failed to create movie. Check all fields.";
+                toast.error(errorMsg);
+            }
         } catch (err) {
             alert("Error adding movie. Please try again.");
         } finally {
