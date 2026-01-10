@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
+import { useEffect, useState } from "react"; // Added missing useState import
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+// 1. Import your custom api instance
+import api from "../api/axios"; 
 import { Plus, Trash2, Edit3, Eye, Film, Loader2, Clock, Globe } from "lucide-react";
+import toast from "react-hot-toast";
 
-const IMAGE_BASE = "http://localhost:3000";
+// 2. Dynamically set the IMAGE_BASE for production
+const IMAGE_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 const ManageMovies = () => {
   const navigate = useNavigate();
@@ -16,10 +20,13 @@ const ManageMovies = () => {
 
   const fetchMovies = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/movies");
-      setMovies(res.data.data);
+      // 3. Use 'api' instance (automatically prepends your Railway URL)
+      const res = await api.get("/api/movies");
+      // Handle data mapping (checks for res.data.data or res.data)
+      setMovies(res.data.data || res.data);
     } catch (err) {
       console.error("Failed to fetch movies", err);
+      toast.error("Could not load movies");
     } finally {
       setLoading(false);
     }
@@ -29,16 +36,18 @@ const ManageMovies = () => {
     if (!window.confirm("Are you sure you want to delete this movie? This action cannot be undone.")) return;
 
     try {
-      await axios.delete(`http://localhost:3000/api/admin/movie/${id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      setMovies(movies.filter(m => m._id !== id));
+      // 4. No need for manual headers anymore! 
+      await api.delete(`/api/admin/movie/${id}`);
+      
+      setMovies(prev => prev.filter(m => m._id !== id));
+      toast.success("Movie deleted successfully");
     } catch (err) {
-      alert("Failed to delete movie");
+      console.error("Delete error:", err);
+      toast.error(err.response?.data?.message || "Failed to delete movie");
     }
   };
+
+  // Rest of your JSX logic...s
 
   if (loading) {
     return (
