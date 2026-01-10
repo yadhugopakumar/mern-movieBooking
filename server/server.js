@@ -13,10 +13,11 @@ dotenv.config();
 const app = express();
 
 // 1. DYNAMIC CORS (Crucial for hosting)
+// Change this part
 const allowedOrigins = [
-  "http://localhost:5173", // Local development
-  process.env.FRONTEND_URL  // Your future live frontend URL (e.g., https://my-cinema.onrender.com)
-];
+  "http://localhost:5173", 
+  process.env.FRONTEND_URL // Ensure this matches your Netlify URL exactly
+].filter(Boolean); // This removes any "undefined" values if the env isn't set yet
 
 app.use(cors({
   origin: function (origin, callback) {
