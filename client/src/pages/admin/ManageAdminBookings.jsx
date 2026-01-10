@@ -1,21 +1,33 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axios"; // Your custom instance
+import toast from "react-hot-toast";
 import { Calendar, MapPin, Film, User, CreditCard, Clock, Loader2 } from "lucide-react";
 
 const ManageAdminBookings = () => {
   const [grouped, setGrouped] = useState({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    axios.get("http://localhost:3000/api/admin/bookings-info", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`
-      }
-    }).then(res => {
-      groupBookings(res.data.data);
+
+useEffect(() => {
+  const fetchAllBookingsInfo = async () => {
+    try {
+      // 1. Switched to 'api' (Prepends Railway URL automatically)
+      // 2. Interceptor handles the 'Bearer' token injection
+      const res = await api.get("/api/admin/bookings-info");
+      
+      // 3. Pass the data to your grouping function
+      // Handle both res.data.data or res.data
+      groupBookings(res.data.data || res.data);
+    } catch (err) {
+      console.error("Admin Fetch Error:", err);
+      toast.error("Failed to load site-wide statistics");
+    } finally {
       setLoading(false);
-    });
-  }, []);
+    }
+  };
+
+  fetchAllBookingsInfo();
+}, []);
 
   const groupBookings = (bookings) => {
     const result = {};
