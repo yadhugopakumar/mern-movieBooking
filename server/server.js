@@ -19,17 +19,28 @@ const allowedOrigins = [
   process.env.FRONTEND_URL // Ensure this matches your Netlify URL exactly
 ].filter(Boolean); // This removes any "undefined" values if the env isn't set yet
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
+  origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      return callback(new Error('CORS policy violation'), false);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
-    return callback(null, true);
+
+    // DO NOT throw error — just deny silently
+    return callback(null, false);
   },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
 }));
+
+app.options("*", cors());
+
 
 app.use(express.json());
 
