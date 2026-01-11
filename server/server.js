@@ -12,13 +12,6 @@ dotenv.config();
 
 const app = express();
 
-// 1. DYNAMIC CORS (Crucial for hosting)
-// Change this part
-const allowedOrigins = [
-  "http://localhost:5173", 
-  process.env.FRONTEND_URL // Ensure this matches your Netlify URL exactly
-].filter(Boolean); // This removes any "undefined" values if the env isn't set yet
-
 const allowedOrigins = [
   "http://localhost:5173",
   process.env.FRONTEND_URL
@@ -32,8 +25,7 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // DO NOT throw error — just deny silently
-    return callback(null, false);
+    return callback(null, false); // no error throw
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
